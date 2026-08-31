@@ -1,303 +1,514 @@
 /*
  * ============================================================
- * GARDEN BUILDER — ASSET MANIFEST
+ * GARDEN BUILDER — LIVE ASSET LOADER
  * ============================================================
  *
- * The actual garden artwork lives in:
+ * The builder lives in:
  *
- * CloverTerrace/weather
- * /assets/garden/
+ *   CloverTerrace/garden-builder
  *
- * This manifest tells the builder where those assets live.
+ * The artwork lives in:
  *
- * Later we can automate generation of this file so newly added
- * sprites appear in the builder automatically.
+ *   CloverTerrace/weather
+ *   /assets/garden/
+ *
+ * This file asks GitHub for the actual repository tree and
+ * discovers the garden artwork automatically.
+ *
+ * Nothing is hardcoded beyond the repository location.
  * ============================================================
  */
 
+
+/* ============================================================
+   REPOSITORY CONFIGURATION
+   ============================================================ */
+
+const GARDEN_REPOSITORY = {
+    owner: "CloverTerrace",
+    repo: "weather",
+    branch: "main",
+    root: "assets/garden"
+};
+
+
+/*
+ * Raw GitHub URL used for the actual image files.
+ */
 const GARDEN_ASSET_BASE =
-    "https://cloverterrace.github.io/weather/assets/garden";
+    "https://raw.githubusercontent.com/CloverTerrace/weather/main/assets/garden";
 
 
 /*
- * ============================================================
- * SEASON CONFIGURATION
- * ============================================================
+ * GitHub API endpoint used to discover files.
  */
+const GARDEN_TREE_API =
+    "https://api.github.com/repos/" +
+    GARDEN_REPOSITORY.owner +
+    "/" +
+    GARDEN_REPOSITORY.repo +
+    "/git/trees/" +
+    GARDEN_REPOSITORY.branch +
+    "?recursive=1";
 
-const GARDEN_CATEGORIES = {
 
-    spring: [
-        "borders",
-        "creatures",
-        "crops",
-        "decorations",
-        "flowers",
-        "plants",
-        "terrain",
-        "tree"
-    ],
+/* ============================================================
+   SUPPORTED SEASONS
+   ============================================================ */
 
-    summer: [
-        "borders",
-        "creatures",
-        "crops",
-        "decorations",
-        "flowers",
-        "plants",
-        "terrain",
-        "tree"
-    ],
+const GARDEN_SEASONS = [
+    "spring",
+    "summer",
+    "autumn",
+    "winter"
+];
 
-    autumn: [
-        "borders",
-        "creatures",
-        "crops",
-        "decorations",
-        "flowers",
-        "plants",
-        "terrain",
-        "tree"
-    ],
 
-    winter: [
-        "borders",
-        "creatures",
-        "crops",
-        "decorations",
-        "flowers",
-        "plants",
-        "terrain",
-        "tree"
-    ]
+/* ============================================================
+   ASSET STORAGE
+   ============================================================ */
+
+let GARDEN_ASSET_CACHE = {
+
+    spring: [],
+    summer: [],
+    autumn: [],
+    winter: []
 
 };
 
 
 /*
- * ============================================================
- * ASSET LIST
- * ============================================================
- *
- * For now we're going to start with the Summer artwork that
- * we know exists.
- *
- * More files will be added automatically in the next manifest
- * generation pass.
- * ============================================================
+ * This lets the builder know whether the repository has
+ * finished loading.
  */
-
-const GARDEN_ASSETS = {
-
-    summer: {
-
-        flowers: [
-
-            "bed-allium.png",
-            "bed-blue1.png",
-            "bed-daisy.png",
-            "bed-hyacinth.png",
-            "bed-lily.png",
-            "bed-peony.png",
-            "bed-rose.png",
-            "bed-sunflower.png",
-            "bed-tulip.png",
-
-            "flower-blue-cluster.png",
-            "flower-blue.png",
-            "flower-cluster-colorful.png",
-            "flower-cluster-orange.png",
-            "flower-cluster-pink.png",
-            "flower-colorful.png",
-            "flower-daisy-pink.png",
-            "flower-orange.png",
-            "flower-poppy.png",
-            "flower-purple.png",
-            "flower-red.png",
-            "flower-tall-mixed.png",
-            "flower-tall-pink.png",
-            "flower-white.png",
-            "flower-yellow-marigold.png",
-            "flower-yellow.png",
-
-            "flower3.png",
-            "flower_big.png",
-
-            "flowers15.png",
-            "flowers2.png",
-            "flowers25.png",
-            "flowers26.png",
-            "flowers27.png",
-            "flowers28.png",
-            "flowers29.png",
-            "flowers30.png",
-            "flowers31.png",
-            "flowers33.png",
-            "flowers34.png",
-            "flowers35.png",
-            "flowers36.png",
-            "flowers37.png",
-            "flowers38.png",
-            "flowers39.png",
-            "flowers41.png",
-            "flowers42.png",
-            "flowers43.png",
-            "flowers44.png",
-            "flowers45.png",
-            "flowers46.png",
-            "flowers47.png",
-            "flowers48.png",
-            "flowers49.png",
-            "flowers50.png",
-            "flowers51.png",
-            "flowers52.png",
-            "flowers53.png",
-            "flowers54.png",
-            "flowers55.png",
-            "flowers56.png",
-            "flowers57.png",
-            "flowers58.png",
-            "flowers59.png",
-            "flowers60.png",
-            "flowers61.png",
-            "flowers62.png",
-            "flowers63.png",
-            "flowers64.png",
-            "flowers65.png",
-
-            "flowers7.png",
-            "flowers8.png",
-
-            "flytrap.png",
-            "forgetmenot.png",
-            "gerbdaisy.png",
-
-            "groundcover-pink.png",
-            "groundcover-purple.png",
-            "groundcover-teal.png",
-
-            "icon-allium.png",
-            "icon-blue1.png",
-            "icon-daisy.png",
-            "icon-hyacinth.png",
-            "icon-lily.png",
-            "icon-peony.png",
-            "icon-rose.png",
-            "icon-sunflower.png",
-            "icon-tulip.png",
-
-            "lavender.png",
-            "lily.png",
-            "pansy.png",
-            "peony.png",
-            "pitcherplant.png",
-            "poppy.png",
-
-            "pot-purple.png",
-            "pot-red.png",
-            "pot-tulip.png",
-
-            "rose.png",
-            "sunflower.png",
-            "tulip.png",
-            "wildpansy.png"
-
-        ]
-
-    }
-
-};
+let GARDEN_ASSETS_READY = false;
 
 
-/*
- * ============================================================
- * HELPER FUNCTIONS
- * ============================================================
- */
+/* ============================================================
+   CATEGORY DISPLAY ORDER
+   ============================================================ */
+
+const GARDEN_CATEGORY_ORDER = [
+
+    "background",
+    "terrain",
+    "tree",
+    "plants",
+    "flowers",
+    "crops",
+    "decorations",
+    "borders",
+    "creatures"
+
+];
 
 
-/**
- * Convert a season/category/file combination into the
- * complete public URL of the image.
- */
-function gardenAssetURL(
-    season,
-    category,
-    filename
-) {
+/* ============================================================
+   IMAGE EXTENSIONS
+   ============================================================ */
 
-    return [
-        GARDEN_ASSET_BASE,
-        season,
-        category,
-        encodeURIComponent(filename)
-    ].join("/");
+const GARDEN_IMAGE_EXTENSIONS = [
 
-}
+    ".png",
+    ".webp",
+    ".jpg",
+    ".jpeg",
+    ".gif"
+
+];
 
 
-/**
- * Convert filenames into nicer display names.
- *
- * Example:
- *
- * "flower-yellow-marigold.png"
- *
- * becomes:
- *
- * "Flower Yellow Marigold"
- */
-function gardenAssetDisplayName(filename) {
+/* ============================================================
+   CATEGORY NAME CLEANUP
+   ============================================================ */
 
-    return filename
-        .replace(/\.[^/.]+$/, "")
+function gardenCategoryDisplayName(category) {
+
+    return category
+
         .replace(/[-_]+/g, " ")
-        .replace(/\b\w/g, char =>
-            char.toUpperCase()
+
+        .replace(/\b\w/g, character =>
+            character.toUpperCase()
         );
 
 }
 
 
-/**
- * Return every asset belonging to a season.
- */
-function getGardenAssets(season) {
+/* ============================================================
+   ASSET NAME CLEANUP
+   ============================================================ */
 
-    const seasonAssets =
-        GARDEN_ASSETS[season] || {};
+function gardenAssetDisplayName(filename) {
 
-    const result = [];
+    return filename
 
-    Object.entries(seasonAssets)
-        .forEach(([category, files]) => {
+        .replace(/\.[^/.]+$/, "")
 
-            files.forEach(filename => {
+        .replace(/[-_]+/g, " ")
 
-                result.push({
+        .replace(/\b\w/g, character =>
+            character.toUpperCase()
+        );
 
-                    season,
+}
 
-                    category,
 
-                    filename,
+/* ============================================================
+   CHECK WHETHER FILE IS AN IMAGE
+   ============================================================ */
 
-                    name:
-                        gardenAssetDisplayName(filename),
+function isGardenImage(path) {
 
-                    url:
-                        gardenAssetURL(
-                            season,
-                            category,
-                            filename
-                        )
+    const lower =
+        path.toLowerCase();
 
-                });
+    return GARDEN_IMAGE_EXTENSIONS
+        .some(extension =>
+            lower.endsWith(extension)
+        );
+
+}
+
+
+/* ============================================================
+   BUILD PUBLIC IMAGE URL
+   ============================================================ */
+
+function gardenAssetURL(path) {
+
+    /*
+     * path looks like:
+     *
+     * assets/garden/summer/flowers/rose.png
+     *
+     * We remove the "assets/garden/" portion because our
+     * raw base already points there.
+     */
+
+    const relativePath =
+        path.substring(
+            GARDEN_REPOSITORY.root.length + 1
+        );
+
+
+    /*
+     * Encode each path component individually so spaces and
+     * special characters work without encoding the slashes.
+     */
+
+    const encodedPath =
+        relativePath
+            .split("/")
+            .map(part =>
+                encodeURIComponent(part)
+            )
+            .join("/");
+
+
+    return (
+        GARDEN_ASSET_BASE +
+        "/" +
+        encodedPath
+    );
+
+}
+
+
+/* ============================================================
+   DISCOVER ALL GARDEN ASSETS
+   ============================================================ */
+
+async function discoverGardenAssets() {
+
+    console.log(
+        "[Garden Builder] Discovering garden assets..."
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                GARDEN_TREE_API,
+                {
+                    headers: {
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "GitHub API returned " +
+                response.status
+            );
+
+        }
+
+
+        const tree =
+            await response.json();
+
+
+        if (!tree.tree) {
+
+            throw new Error(
+                "GitHub returned no repository tree."
+            );
+
+        }
+
+
+        /*
+         * Reset the cache.
+         */
+
+        GARDEN_ASSET_CACHE = {
+
+            spring: [],
+            summer: [],
+            autumn: [],
+            winter: []
+
+        };
+
+
+        /*
+         * Walk every file in the repository tree.
+         */
+
+        tree.tree.forEach(entry => {
+
+            if (entry.type !== "blob") {
+                return;
+            }
+
+
+            if (
+                !entry.path.startsWith(
+                    GARDEN_REPOSITORY.root + "/"
+                )
+            ) {
+                return;
+            }
+
+
+            if (!isGardenImage(entry.path)) {
+                return;
+            }
+
+
+            /*
+             * Remove:
+             *
+             * assets/garden/
+             *
+             */
+
+            const relative =
+                entry.path.substring(
+                    GARDEN_REPOSITORY.root.length + 1
+                );
+
+
+            const parts =
+                relative.split("/");
+
+
+            /*
+             * We need at least:
+             *
+             * season/category/file
+             */
+
+            if (parts.length < 3) {
+                return;
+            }
+
+
+            const season =
+                parts[0].toLowerCase();
+
+
+            const category =
+                parts[1].toLowerCase();
+
+
+            const filename =
+                parts[parts.length - 1];
+
+
+            /*
+             * Ignore anything outside our four seasons.
+             */
+
+            if (
+                !GARDEN_SEASONS.includes(
+                    season
+                )
+            ) {
+                return;
+            }
+
+
+            /*
+             * Create our normalized asset record.
+             */
+
+            GARDEN_ASSET_CACHE[season].push({
+
+                season,
+
+                category,
+
+                filename,
+
+                path: entry.path,
+
+                name:
+                    gardenAssetDisplayName(
+                        filename
+                    ),
+
+                categoryName:
+                    gardenCategoryDisplayName(
+                        category
+                    ),
+
+                url:
+                    gardenAssetURL(
+                        entry.path
+                    )
 
             });
 
         });
 
-    return result;
+
+        /*
+         * Sort everything alphabetically.
+         */
+
+        GARDEN_SEASONS.forEach(season => {
+
+            GARDEN_ASSET_CACHE[season]
+                .sort((a, b) => {
+
+                    const categoryCompare =
+                        a.category.localeCompare(
+                            b.category
+                        );
+
+
+                    if (
+                        categoryCompare !== 0
+                    ) {
+
+                        return categoryCompare;
+
+                    }
+
+
+                    return a.name.localeCompare(
+                        b.name
+                    );
+
+                });
+
+        });
+
+
+        GARDEN_ASSETS_READY = true;
+
+
+        /*
+         * Report what we found.
+         */
+
+        console.log(
+            "[Garden Builder] Asset discovery complete."
+        );
+
+
+        GARDEN_SEASONS.forEach(season => {
+
+            console.log(
+                "  " +
+                season +
+                ": " +
+                GARDEN_ASSET_CACHE[season].length +
+                " assets"
+            );
+
+        });
+
+
+        return GARDEN_ASSET_CACHE;
+
+
+    } catch (error) {
+
+        console.error(
+            "[Garden Builder] Asset discovery failed:",
+            error
+        );
+
+
+        GARDEN_ASSETS_READY = false;
+
+
+        throw error;
+
+    }
 
 }
+
+
+/* ============================================================
+   GET ASSETS FOR CURRENT SEASON
+   ============================================================ */
+
+function getGardenAssets(season) {
+
+    return (
+        GARDEN_ASSET_CACHE[season] || []
+    );
+
+}
+
+
+/* ============================================================
+   INITIALIZE ASSET SYSTEM
+   ============================================================ */
+
+async function initializeGardenAssets() {
+
+    await discoverGardenAssets();
+
+    /*
+     * If the builder's render function already exists,
+     * refresh the library immediately after discovery.
+     */
+
+    if (
+        typeof renderAssetLibrary ===
+        "function"
+    ) {
+
+        renderAssetLibrary();
+
+    }
+
+}
+
+
+/* ============================================================
+   START DISCOVERY
+   ============================================================ */
+
+initializeGardenAssets();

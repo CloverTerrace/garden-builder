@@ -1329,10 +1329,214 @@
 
 
     /* =========================================================
-       INITIALIZE
-       ========================================================= */
+   INITIALIZE
+   ========================================================= */
 
-    updateZoom();
+updateZoom();
+
+
+/* =========================================================
+   REAL ASSET LIBRARY
+   ========================================================= */
+
+function renderAssetLibrary() {
+
+    const library =
+        document.getElementById("asset-library");
+
+    if (!library) {
+        return;
+    }
+
+    library.innerHTML = "";
+
+    const assets =
+        getGardenAssets(state.season);
+
+    const grouped = {};
+
+    assets.forEach(asset => {
+
+        if (!grouped[asset.category]) {
+            grouped[asset.category] = [];
+        }
+
+        grouped[asset.category].push(asset);
+
+    });
+
+
+    Object.entries(grouped)
+        .forEach(([category, categoryAssets]) => {
+
+            const categoryElement =
+                document.createElement("div");
+
+            categoryElement.className =
+                "asset-category";
+
+
+            const title =
+                document.createElement("div");
+
+            title.className =
+                "asset-category-title";
+
+            title.textContent =
+                category;
+
+
+            const grid =
+                document.createElement("div");
+
+            grid.className =
+                "asset-grid";
+
+
+            categoryAssets.forEach(asset => {
+
+                const item =
+                    document.createElement("div");
+
+                item.className =
+                    "asset-item";
+
+                item.dataset.asset =
+                    asset.filename;
+
+                item.dataset.category =
+                    asset.category;
+
+
+                const image =
+                    document.createElement("img");
+
+                image.src =
+                    asset.url;
+
+                image.alt =
+                    asset.name;
+
+                image.loading =
+                    "lazy";
+
+
+                const name =
+                    document.createElement("div");
+
+                name.className =
+                    "asset-name";
+
+                name.textContent =
+                    asset.name;
+
+
+                item.appendChild(image);
+                item.appendChild(name);
+
+                grid.appendChild(item);
+
+            });
+
+
+            categoryElement.appendChild(title);
+            categoryElement.appendChild(grid);
+
+            library.appendChild(categoryElement);
+
+        });
+
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+function filterAssetLibrary() {
+
+    const query =
+        document
+            .getElementById("asset-search")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    document
+        .querySelectorAll(".asset-item")
+        .forEach(item => {
+
+            const name =
+                item
+                    .querySelector(".asset-name")
+                    ?.textContent
+                    .toLowerCase() || "";
+
+
+            const matches =
+                !query ||
+                name.includes(query);
+
+
+            item.style.display =
+                matches
+                    ? ""
+                    : "none";
+
+        });
+
+
+    document
+        .querySelectorAll(".asset-category")
+        .forEach(category => {
+
+            const visibleAssets =
+                category.querySelectorAll(
+                    ".asset-item:not([style*='display: none'])"
+                );
+
+
+            category.style.display =
+                visibleAssets.length
+                    ? ""
+                    : "none";
+
+        });
+
+}
+
+
+document
+    .getElementById("asset-search")
+    .addEventListener(
+        "input",
+        filterAssetLibrary
+    );
+
+
+/* =========================================================
+   RE-RENDER WHEN SEASON CHANGES
+   ========================================================= */
+
+document
+    .querySelectorAll(".season-button")
+    .forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            renderAssetLibrary();
+
+        });
+
+    });
+
+
+/* =========================================================
+   INITIAL ASSET LOAD
+   ========================================================= */
+
+renderAssetLibrary();
 
 </script>
 
